@@ -2,6 +2,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTasks();
     checkUpcomingDeadlines();
     populateCategoryFilter();
+
+    updatePriorityBasedOnDeadline();
+
+    setInterval(updatePriorityBasedOnDeadline, 60 * 60 * 1000);
 });
 
 document.getElementById('task-form').addEventListener('submit', addTask);
@@ -54,6 +58,25 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// Toggle modo oscuro/claro
+document.getElementById('darkmode-btn').addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    
+    // Guardar preferencia en localStorage
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDarkMode);
+    
+    // Cambiar icono
+    const darkModeBtn = document.getElementById('darkmode-btn');
+    darkModeBtn.textContent = isDarkMode ? '☀️' : '🌙';
+});
+
+// Cargar preferencia al iniciar
+if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark-mode');
+    document.getElementById('darkmode-btn').textContent = '☀️';
+}
+
 function addTask(e) {
     e.preventDefault();
 
@@ -79,6 +102,92 @@ function addTask(e) {
     document.getElementById('task-form').reset();
 }
 
+function setupEditTask(taskId) {
+    const tasks = getTasksFromLocalStorage();
+    const task = tasks.find(t => t.id === parseInt(taskId));
+
+    // Rellenar formulario con datos existentes
+    document.getElementById('task-name').value = task.taskName;
+    document.getElementById('due-date').value = task.dueDate;
+    document.getElementById('project').value = task.project;
+    document.getElementById('priority').value = task.priority;
+
+    // Cambiar comportamiento del formulario
+    const form = document.getElementById('task-form');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.textContent = 'Guardar Cambios';
+
+    // Eliminar listener anterior para evitar duplicados
+    form.replaceWith(form.cloneNode(true));
+    const newForm = document.getElementById('task-form');
+
+    newForm.onsubmit = (e) => {
+        e.preventDefault();
+        updateTask(taskId);
+    };
+}
+
+function updateTask(taskId) {
+    const taskName = document.getElementById('task-name').value;
+    const dueDate = document.getElementById('due-date').value;
+    const project = document.getElementById('project').value;
+    const priority = document.getElementById('priority').value;
+
+    let tasks = getTasksFromLocalStorage();
+    tasks = tasks.map(task => {
+        if (task.id === parseInt(taskId)) {
+            return {
+                ...task,
+                taskName,
+                dueDate,
+                project,
+                priority
+            };
+        }
+        return task;
+    });
+
+    saveTasksToLocalStorage(tasks);
+    refreshTaskList();
+    resetForm();
+}
+
+function resetForm() {
+    document.getElementById('task-form').reset();
+    const submitBtn = document.querySelector('#task-form button[type="submit"]');
+    submitBtn.textContent = '--Añadir--';
+    
+    // Restaurar comportamiento original
+    document.getElementById('task-form').onsubmit = (e) => {
+        e.preventDefault();
+        addTask(e);
+    };
+}
+
+function updatePriorityBasedOnDeadline() {
+    const now = new Date();
+    const tasks = getTasksFromLocalStorage();
+    let updated = false;
+
+    const updatedTasks = tasks.map(task => {
+        if (task.completed) return task; // Ignorar tareas completadas
+
+        const dueDate = new Date(task.dueDate + 'T23:59:59'); // Hora límite del día
+        const hoursLeft = (dueDate - now) / (1000 * 60 * 60); // Diferencia en horas
+
+        if (hoursLeft <= 72 && task.priority !== 'alta') {
+            updated = true;
+            return { ...task, priority: 'alta' }; // Actualizar prioridad
+        }
+        return task;
+    });
+
+    if (updated) {
+        saveTasksToLocalStorage(updatedTasks);
+        refreshTaskList();
+    }
+}
+
 function showTasksForDate(selectedDate) {
     const tasks = getTasksFromLocalStorage().filter(task => task.dueDate === selectedDate);
     const taskDisplay = document.getElementById('calendar-tasks');
@@ -97,11 +206,20 @@ function showTasksForDate(selectedDate) {
     }
 }
 
-// Agregar tarea al DOM
+// function isTaskUrgent(dueDate) {
+//     const now = new Date();
+//     const due = new Date(dueDate + 'T23:59:59');
+//     return (due - now) <= 72 * 60 * 60 * 1000; // ≤ 72 horas
+// }
+
 function addTaskToDOM(task) {
     if (task.completed) {
         return;
     }
+
+    // if (task.priority === 'alta' && isTaskUrgent(task.dueDate)) {
+    //     taskRow.classList.add('blink-warning'); // Clase CSS para parpadeo
+    // }
     
     const taskRow = document.createElement('tr');
     taskRow.setAttribute('data-id', task.id);
@@ -116,6 +234,7 @@ function addTaskToDOM(task) {
         <td>${task.priority}</td>
         <td>
             <button class="delete-btn">Eliminar</button>
+            <button class="edit-btn">Editar</button>
             <button class="subtask-btn">Subtareas</button>
         </td>
     `;
@@ -142,6 +261,16 @@ taskList.addEventListener('click', function (e) {
         toggleTaskCompletion(taskId, taskRow);
     } else if (e.target.classList.contains('subtask-btn')) {
         toggleSubtaskView(taskId);
+    }
+
+    if (e.target.classList.contains('edit-btn')) {
+        const taskId = e.target.closest('tr').getAttribute('data-id');
+        setupEditTask(taskId);
+        
+        // Scroll suave al formulario
+        document.getElementById('task-form').scrollIntoView({ 
+            behavior: 'smooth' 
+        });
     }
 });
 

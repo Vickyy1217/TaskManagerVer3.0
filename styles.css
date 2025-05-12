@@ -29,7 +29,7 @@ body {
 }
 
 h1 {
-    color: #333;
+    color: var(--text-color);
     font-family: "Calibri Light";
     text-align: center;
     margin-bottom: 20px;
@@ -93,6 +93,20 @@ button.delete-btn {
 
 button.delete-btn:hover {
     background-color: #c82333;
+}
+
+.edit-btn {
+    background-color: #17a2b8 !important;
+    color: white;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 0 3px;
+}
+
+.edit-btn:hover {
+    background-color: #138496 !important;
 }
 
 /* Estilos para subtareas */
@@ -338,4 +352,70 @@ button.delete-btn:hover {
 
 #reset-filter {
     background: #666;
+}
+
+:root {
+    /* Colores modo claro (default) */
+    --bg-color: #f9f9f9;
+    --text-color: #333;
+    --container-bg: white;
+    --table-header-bg: #f4f4f4;
+    --table-row-even: #f9f9f9;
+    --border-color: #ddd;
+}
+
+/* Modo oscuro */
+body.dark-mode {
+    --bg-color: #121212;
+    --text-color: #e0e0e0;
+    --container-bg: #1e1e1e;
+    --table-header-bg: #2d2d2d;
+    --table-row-even: #252525;
+    --border-color: #444;
+}
+
+/* Aplicar variables */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+.container, .task-table, #filter-container, #calendar, #completed-tasks-container {
+    background-color: var(--container-bg);
+}
+
+.task-table th {
+    background-color: var(--table-header-bg);
+}
+
+.task-table tr:nth-child(even) {
+    background-color: var(--table-row-even);
+}
+
+.task-table th, .task-table td {
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Estilo del botón */
+.darkmode-btn {
+    background: none;
+    border: none;
+    font-size: 1.2em;
+    cursor: pointer;
+    margin: 0 5px;
+    transition: transform 0.2s;
+}
+
+.darkmode-btn:hover {
+    transform: scale(1.1);
+}
+
+.blink-warning {
+    animation: blink 1s linear infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
 }
